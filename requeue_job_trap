@@ -1,0 +1,16 @@
+#!/bin/bash
+
+requeue()
+{
+    # Set the timeout duration
+    timeout_duration=4m
+    
+    echo "The job will run every $(timeout_duration) interval"
+    
+    timeout $timeout_duration "$@"
+    if [[ $? == 124 ]]; then
+	scontrol requeue $SLURM_JOB_ID
+    fi
+}
+
+

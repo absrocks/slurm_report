@@ -1,0 +1,49 @@
+#!/bin/bash
+# slurm_jobid jobid
+# 3-April-2024 /AM
+# added CPUTimeRAW to see cpu-seconds and QOS - 3-April-2024 /AM
+
+# Define the help message
+display_help() {
+    echo "Usage: $0 [jobid]"
+    echo "Options:"
+    echo "  -h, --help     Display this help message"
+    echo "Example:"
+    echo "  $0 1234"
+    echo " shows the details of the job id 1234"
+}
+# Parse command-line options
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            display_help
+            exit 1
+            ;;
+	*) break ;;
+    esac
+    shift
+done
+
+check_slurm_job_details() {
+    local job_id=$1
+    local command="sacct -j ${job_id} -D --format=JobID,JobName,Partition,QOS,Elapsed,CPUTimeRAW,State,Submit,User,NodeList,Account,Timelimit,ReqTRES%-50,Workdir%-75"
+
+    # Run the command and handle errors
+    result=$(eval "$command" 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "$result"
+    else
+        echo "Error: $result" >&2
+    fi
+}
+
+if [ $# -gt 0 ]; then
+    job_id_to_check=$1
+    echo "Job ID is: $job_id_to_check"
+else
+    echo "No arguments provided. Please specify the Slurm Job ID"
+    exit 1
+fi
+
+# Specify your Slurm job ID
+check_slurm_job_details "$job_id_to_check"

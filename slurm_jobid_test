@@ -1,0 +1,84 @@
+#!/bin/bash
+
+display_help() {
+    echo "Usage: $0 [jobid]"
+    echo "Options:"
+    echo "  -h, --help     Display this help message"
+    echo "Example:"
+    echo "  $0 1234"
+    echo " shows the details of the job id 1234"
+}
+# Define the help message
+display_help() {
+    echo "Usage: $0 [jobid]"
+    echo "Options:"
+    echo "  -h, --help     Display this help message"
+    echo "Example:"
+    echo "  $0 1234"
+    echo " shows the details of the job id 1234"
+}
+
+# Parse command-line options
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            display_help
+            exit 1
+            ;;
+        *) break ;;
+    esac
+    shift
+done
+
+# Function to print a line separator
+print_separator() {
+    printf "+%-12s+%-40s+%-20s+%-20s+%-15s+%-15s+%-10s+%-20s+%-15s+%-20s+%-15s+%-15s+%-55s+%-80s+\n" | tr ' ' '-'
+}
+
+# Function to print table headers
+print_headers() {
+    printf "| %-10s | %-38s | %-18s | %-18s | %-13s | %-13s | %-8s | %-18s | %-13s | %-18s | %-13s | %-13s | %-53s | %-78s |\n" \
+        "JobID" "JobName" "Partition" "QOS" "Elapsed" "CPUTimeRAW" "State" "Submit" "User" "NodeList" "Account" "Timelimit" "ReqTRES" "Workdir"
+    print_separator
+}
+
+# Main function
+main() {
+    # Print headers
+    print_headers
+    local job_id=$1
+    # read -p "Enter the Job ID: " job_id
+    # Execute sacct command
+    local command="sacct -j ${job_id} -D --format=JobID,JobName,Partition,QOS,Elapsed,CPUTimeRAW,State,Submit,User,NodeList,Account,Timelimit,ReqTRES%-50,Workdir%-75"
+
+    # Run the command and handle errors
+    result=$(eval "$command" 2>&1)
+    if [ $? -eq 0 ]; then
+        while read -r line; do
+        printf "| %-10s | %-38s | %-18s | %-18s | %-13s | %-13s | %-8s | %-18s | %-13s | %-18s | %-13s | %-13s | %-53s | %-78s |\n" $line
+	done <<< "$result"
+	# Print footer
+	print_separator
+    else
+        echo "Error: $result" >&2
+    fi
+    
+    # Loop through sacct output and print rows
+    #while read -r line; do
+    #    printf "| %-10s | %-38s | %-18s | %-18s | %-13s | %-13s | %-8s | %-18s | %-13s | %-18s | %-13s | %-13s | %-53s | %-78s |\n" $line
+    #done <<< "$sacct_output"
+
+    # Print footer
+    #print_separator
+}
+
+if [ $# -gt 0 ]; then
+    job_id_to_check=$1
+    echo "Job ID is: $job_id_to_check"
+else
+    echo "No arguments provided. Please specify the Slurm Job ID"
+    exit 1
+fi
+
+# Call main function
+main "$job_id_to_check"

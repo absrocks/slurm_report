@@ -1,0 +1,111 @@
+#!/bin/bash
+# sactu show SACcT for a User
+# 17-Jul-2021 /KJW
+# Added -d and -x
+# 1-Nov-2021 /KJW
+set -u
+
+ME=${0##*/}
+
+LINE='#####################################################################################################################################################################'
+
+bomb() {
+	say "ABTERM--${*:-Unexpected error}" >&2
+	exit 1
+}
+
+say() {
+	echo "$ME: ${*:-}"
+}
+
+format_l2="JobID,JobName,Partition,AllocCPUS,AllocTRES,State,ExitCode,submit,start,end,elapsed,workdir%-80,Nodelist"
+format_l="JobID,JobName,Partition,AllocCPUS,AllocTRES,State,ExitCode,submit,start,end,elapsed"
+format_s="JobID,Partition,end,workdir%-80"
+format_a="ALL"
+
+days='7'
+default_cluster=''
+dryrun=0
+format=$format_l
+format_add=''
+partition=''
+while [ $# -gt 0 ] ; do
+	case "$1" in
+		'-h' ) 
+			echo -e "Synopsis:\n\tDumps most general sacct info for users\n"
+			echo -e "Syntax:\n\t$ME [-h] [-p partition] [-d days] [-c cluster] [-x] user[@cluster]\n"
+			echo -e "In which\n"
+			echo -e "\t-h ----------- Display this help"
+			echo -e "\t-c cluster --- Specify partition if not given with @cluster"
+			echo -e "\t-d days ------ Number of days back to search, default is $days"
+			echo -e "\t-p partition - Partition to report, default is all"
+			echo -e "\t-s ----------- Short format output"
+			echo -e "\t-A ----------- Dump all fields"
+			echo -e "\t-L ----------- Longer format output"
+			echo -e "\t-x ----------- Dryrun, just show sacct query"
+			echo -e "\t-a f[,f[...]]- Additional fields to display, e.g., \"-a nodelist\""
+			echo -e "\nIf cluster is not specified, then finds entry if user has access to just one cluster"
+			echo -e "\nShort output is"
+			echo -e "\t$format_s"
+			echo -e "\nLong (standard) output is"
+			echo -e "\t$format_l"
+			echo -e "\nLonger output is"
+			echo -e "\t$format_l2"
+			exit 1
+			;;
+		'-A' ) format=$format_a ;;
+		'-a' ) 
+			[ $# -gt 1 ] || bomb "Need an option for \"$1\""
+			shift
+			format_add=$1
+			;;
+		'-c' ) 
+			[ $# -gt 1 ] || bomb "Need an option for \"$1\""
+			shift
+			default_cluster=$1
+			;;
+		'-d' ) 
+			[ $# -gt 1 ] || bomb "Need an option for \"$1\""
+			shift
+			days=$1
+			case "$days" in
+				'' ) bomb "Need number of days with -d" ;;
+				'0' ) bomb "Need non-zero number of days with -d" ;;
+				*[^0-9]* ) bomb "Bad number of days given in \"-d $dates\"" ;;
+			esac
+			;;
+		'-L' ) format=$format_l2 ;;
+		'-p' ) 
+			[ $# -gt 1 ] || bomb "Need an option for \"$1\""
+			shift
+			partition="--partition=$1" 
+			;;
+		'-s' ) format=$format_s ;;
+		'-x' ) dryrun=1 ;;
+		'-'* ) bomb "Unknown option \"$1\" given" ;;
+		* ) break ;;
+	esac
+	shift
+done
+[ -z "$format_add" ] || format="$format,$format_add"
+
+case "$#" in
+	0 ) bomb "Need user list.  Please provide one or more users in format user[@cluster]"  ;;
+	1 ) MULTI=false ;;
+	* ) MULTI=true ;;
+esac
+
+dates="--starttime="$(date '+%Y-%m-%dT00:00:00' -d "-$days days")  # Started X days ago
+#dates="$dates --endtime=$(date '+%Y-%m-%dT00:00:00' -d '+1 days')" # Ended on or before midnight today
+dates="$dates --endtime=now"
+
+for ident in "${@}" ; do
+	login=$1
+	
+	cmd="sacct --user=$login $partition $dates --format=$format"
+	if [ $dryrun -eq 1 ] ; then
+		say "$cmd"
+	else
+		eval $cmd || bomb "Faild status from {$cmd}"
+	fi
+done

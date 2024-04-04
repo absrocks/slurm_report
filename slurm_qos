@@ -1,0 +1,121 @@
+#!/bin/bash
+
+# Define the help message
+display_help() {
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  -h, --help     Display this help message"
+    echo "  -p, --piname Specify the PI's UCID or course name"
+    echo "  -u, --username Specify the user's UCID"
+    echo "  -q, --qos Specify the QoS: high, low or standard"
+    echo "  -qt, --qostype Specify whehter you want to add or remove the QoS: Use 'qos+' or 'qos-' "
+    echo "Example: For PI"
+    echo "  $0 -p myuser -q high -qt qos+"
+    echo "Example: For User"
+    echo "  $0 -u myuser -q high -qt qos+"
+}
+
+# Parse command-line options
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            display_help
+            exit 0
+            ;;
+        -p|--piname)
+            piname="$2"
+            shift
+            ;;
+	-u|--username)
+            username="$2"
+            shift
+            ;;
+        -q|--qos)
+            qos="$2"
+            shift
+            ;;
+	-qt|--qostype)
+            qostype="$2"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            display_help
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# Check if username, qos and qos type are provided
+if [ -z "$qos" ] || [ -z "$qostype" ]; then
+    echo "Error: QoS and QoS Type are required."
+    display_help
+    exit 1
+fi
+
+# Check if username or PI's username are provided
+if [ -z "$piname" ] && [ -z "$username" ]; then
+    echo "Error: PI or user's UCID is required."
+    display_help
+    exit 1
+fi
+
+# Example usage
+echo "PI UCID or Course Name: $piname"
+echo "USER's UCID: $username"
+echo "QoS: $qos"
+
+
+# Define the array
+#QoS=("high" "low" "standard")
+
+# Use command-line arguments for inputs
+#piname=$1
+#qos=$2
+#qostype=$3
+
+set_qos() {
+
+ if [ -z "$username" ]; then
+    if [ "$qostype" == "qos+" ]; then
+	# Use sacctmgr to create the user with the provided inputs
+	echo "The QoS to be added: $qos"
+        sudo -i sacctmgr -i update account name=$piname set qos+=$qos
+    elif [ "$qostype" == "qos-" ]; then
+	echo "The QoS to be removed: $qos"
+	sudo -i sacctmgr -i update account name=$piname set qos-=$qos
+    else
+	echo "Wrong Qos Type is provided. Either use 'qos+' or 'qos-' " 
+	echo "Use 'qos+' when QoS to be added or"
+	echo "'qos-' when Qos to be removed"
+	exit 1
+    fi
+elif [ -z "$piname" ]; then
+   if [ "$qostype" == "qos+" ]; then
+        # Use sacctmgr to create the user with the provided inputs
+        echo "The QoS to be added: $qos"
+        sudo -i sacctmgr -i update user name=$username set qos+=$qos
+    elif [ "$qostype" == "qos-" ]; then
+        echo "The QoS to be removed: $qos"
+        sudo -i sacctmgr -i update user name=$username set qos-=$qos
+    else
+        echo "Wrong Qos Type is provided. Either use 'qos+' or 'qos-' "
+        echo "Use 'qos+' when QoS to be added or"
+        echo "'qos-' when Qos to be removed"
+        exit 1
+   fi
+fi
+}
+
+
+    
+    
+#if [[ " ${QoS[@]} " =~ " ${qos} " ]]; then
+#    set_qos "$piname" "$qos" "$qostype"
+                    
+#else
+#    echo "QoS is wrong, please use 'high','low' or 'standard' "
+#    exit 1
+    
+#fi

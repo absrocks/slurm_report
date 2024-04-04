@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Define the help message
+display_help() {
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  -h, --help     Display this help message"
+    echo "  -u, --username Specify the user's UCID"
+    echo "Example: For User"
+    echo "  $0 -u myuser R"
+}
+
+# Parse command-line options
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            display_help
+            exit 0
+            ;;
+        -u|--username)
+            username="$2"
+	    ST="$3"
+            shift
+            ;;
+        *)
+    esac
+    shift
+done
+
+if [ -z "$username" ]; then
+    echo "No username specified, this will print the total number ocres for running jobs"
+    squeue -t R  --format="%C" | awk '{ sum += $1 } END { print sum }'
+else
+    echo "This will print the total number of cores for $username and job status: $ST"
+    squeue -t $ST -u $username --format="%C" | awk '{ sum += $1 } END { print sum }'
+fi
+    
+

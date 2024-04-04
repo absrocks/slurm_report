@@ -1,0 +1,68 @@
+#!/bin/bash
+
+display_help() {
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  -h, --help     Display this help message"
+    echo "  -u, --username Specify the user's UCID to be added to Slurm"
+    echo "  -p, --pi Specify the PI's UCID"
+    echo "  -f, --function Specify whehter you want to create or add Slurm account: use 'create' or 'add' "
+    echo "Example:"
+    echo "  $0 -u userucid -p piucid -f add"
+}    
+# Use command-line arguments for inputs
+# Parse command-line options
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            display_help
+            exit 0
+            ;;
+        -u|--username)
+            username="$2"
+	    shift
+            ;;
+        -p|--piname)
+            accountname="$2"
+            shift
+            ;;
+	-f|--function)
+            function="$2"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            display_help
+	    exit 1
+	    ;;
+    esac
+    shift
+done
+
+# Check if username, and PI's UCID are provided
+if [ -z "$username" ] || [ -z "$accountname" ] || [ -z "$function" ]; then
+    echo "Error: username, PI UCID and function are required."
+    display_help
+    exit 1
+fi
+
+# Example usage
+echo "User to be added: $username"
+echo "PI's account: $accountname"
+echo "SLURM account: $function"
+
+# Use sacctmgr to create the user with the provided inputs
+
+if [ "$function" == "add" ]; then
+    # Use sacctmgr to create the user with the provided inputs
+    echo " Provide $username access to $accountname"
+    sudo -i sacctmgr create user name=$username account=$accountname
+elif [ "$function" == "create" ]; then
+    echo " Create SLURM account for $username under PI $accountname"
+    sudo -i sacctmgr add user $username account=$accountname
+else
+    echo "Wrong function is provided. Either use 'add' or 'create' "
+    echo "Use 'add' to provide the access to SLURM PI account"
+    echo "Use 'create' to create the SLURM account under PI"
+        exit 1
+    fi

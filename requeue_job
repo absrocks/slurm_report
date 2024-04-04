@@ -1,0 +1,12 @@
+#!/bin/bash
+
+
+# Set the timeout duration
+timeout_duration=71h
+
+timeout $timeout_duration "$@"
+    if [[ $? == 124 ]]; then
+        scontrol requeue $SLURM_JOB_ID
+    fi
+
+
